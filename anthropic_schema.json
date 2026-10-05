@@ -1,0 +1,14 @@
+{
+  "name": "get_stock_info",
+  "description": "دریافت اطلاعات لحظه‌ای یک نماد بورسی ایران از TSETMC",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "description": "نماد سهم، مثلاً 'فولاد' یا 'خودرو'"
+      }
+    },
+    "required": ["symbol"]
+  }
+}
