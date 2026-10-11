@@ -1,0 +1,5 @@
+pytse_client
+mcp[cli]>=1.28,<2
+openai
+requests
+python-dotenv
