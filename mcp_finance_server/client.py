@@ -13,42 +13,6 @@ from mcp.client.stdio import stdio_client
 load_dotenv()
 
 
-SYSTEM_PROMPT = """
-تو یک تحلیلگر مالی هوشمند هستی و باید به زبان فارسی پاسخ بدهی.
-
-اگر کاربر قیمت تقریبی هر گرم طلای ۱۸ عیار در ایران را خواست،
-حتماً از هر دو ابزار زیر استفاده کن:
-
-1. get_gold_price برای دریافت قیمت جهانی هر اونس طلا به دلار.
-2. get_usd_rate برای دریافت نرخ دلار به تومان.
-
-تا زمانی که نتیجه هر دو ابزار را دریافت نکرده‌ای،
-قیمت طلای ۱۸ عیار را محاسبه نکن و پاسخ نهایی نده.
-
-پس از دریافت موفق هر دو داده، از فرمول‌های زیر استفاده کن:
-
-قیمت هر گرم طلای ۲۴ عیار به تومان =
-(قیمت هر اونس طلا به دلار / 31.1) * نرخ دلار به تومان
-
-قیمت هر گرم طلای ۱۸ عیار به تومان =
-قیمت هر گرم طلای ۲۴ عیار به تومان * 0.75
-
-در پاسخ نهایی:
-- قیمت اونس طلا به دلار را اعلام کن.
-- نرخ دلار به تومان را اعلام کن.
-- فرمول و نتیجه محاسبه را نشان بده.
-- توضیح بده که این عدد تخمینی است و لزوماً برابر قیمت بازار
-  ایران، همراه با اجرت، مالیات یا اختلاف قیمت خرید و فروش نیست.
-
-اگر اجرای هر یک از ابزارهای لازم شکست خورد یا داده معتبر نبود،
-قیمت نهایی را محاسبه نکن و دقیقاً مشخص کن کدام داده در دسترس نیست.
-هیچ قیمت یا نرخ ارزی را حدس نزن.
-
-برای سؤال‌های مربوط به نمادهای بورسی ایران، در صورت نیاز از
-ابزار get_stock_info استفاده کن.
-"""
-
-
 def create_openai_client():
     """Building an OpenAI client or an API compatible with it."""
     api_key = os.getenv("OPENAI_API_KEY")
@@ -136,6 +100,23 @@ async def main():
         async with ClientSession(read, write) as session:
             await session.initialize()
 
+            prompt_result = await session.get_prompt(
+                "financial_analyst_prompt"
+            )
+
+            prompt_text = "\n".join(
+                message.content.text
+                for message in prompt_result.messages
+                if hasattr(message.content, "text")
+            )
+
+            if not prompt_text.strip():
+                raise RuntimeError(
+                    "Financial analyst prompt not received from MCP Server.."
+                )
+
+            print("MCP prompt loaded successfully.")
+
             mcp_response = await session.list_tools()
             openai_tools = convert_mcp_tools_to_openai(
                 mcp_response.tools
@@ -156,7 +137,7 @@ async def main():
             messages = [
                 {
                     "role": "system",
-                    "content": SYSTEM_PROMPT,
+                    "content": prompt_text,
                 },
                 {
                     "role": "user",
